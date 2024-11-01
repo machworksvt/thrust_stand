@@ -13,7 +13,7 @@ hx = HX711(dout_pin=6, pd_sck_pin=5) # Defines hx to use hx711 python package
 
 class Application(tk.Frame):
     
-    #Initializes the GUI, any code that needs to run before the GUI opens goes in here
+    # Initializes the GUI, any code that needs to run before the GUI opens goes in here
     def __init__(self, window=None):
         super().__init__(window)
         hx.zero() # Zeros the thrust sensor
@@ -34,18 +34,29 @@ class Application(tk.Frame):
                                       
                                       
 
-    # Defines widgets (text labels, buttons, etc) for the GUI
+    # Defines widgets for the GUI
     def create_widgets(self):
+
+        # Generated the force read-out
         self.thrust_label = tk.Label(self, text='0.0 N', font=('Ariel', 80))
         self.thrust_label.pack()
+        # Start button, when pressed runs the start() funtion
         self.start_button = tk.Button(self, text='Start', height=5, width=7, font=('Ariel', 20), command=self.start)
         self.start_button.pack(side=tk.LEFT)
+        
+        # Stop button, when pressed runs the stop() function
         self.stop_button = tk.Button(self, text='Stop', height=5, width=7, font=('Ariel', 20), command=self.stop)
         self.stop_button.pack(side=tk.RIGHT)
+        
+        # Reset button, when pressed runs the reset() function
         self.reset_button = tk.Button(self, text='Reset', height=5, width=7, font=('Ariel', 20), command=self.reset)
         self.reset_button.pack(side=tk.BOTTOM)
+        
+        # Calibrate button, when pressed runs the calibrate() function
         self.calibrate_button = tk.Button(self, text='Calibrate', height=5, width=7, font=('Ariel', 20), command=self.calibrate)
         self.calibrate_button.pack(side=tk.TOP)
+        
+        # Generates the calibration coefficient input box and button to set the calibration
         self.calib_entry_label = tk.Label(self, text='Calibration Coefficient', font=('Ariel', 14))
         self.calib_entry_label.pack()
         self.calib_entry = tk.Entry(self, font=('Ariel', 14))
@@ -53,34 +64,36 @@ class Application(tk.Frame):
         self.set_calib_button = tk.Button(self, text='Set', font=('Ariel', 10), command=self.set_calibration)
         self.set_calib_button.pack(side=tk.LEFT)
     
-    # Start function starts the sensor data flowing, also zeros sensor before each start
+    # Start function first zeros the force sensor, then sets the state of the application to running and runs the update_force() 
     def start(self):
         if not self.running:
             hx.zero()
             self.running = True
-            self.update_force() # Starts updating the force readout by calling the update_force funcion
+            self.update_force() 
 
-    #Resets the force display
+    # Resets the force display back to zero
     def reset(self):
         self.force = 0
         self.thrust_label.config(text='0.0 N')
     
-    #Stops the data reading from the force sensor
+    # Stops the data reading from the force sensor by setting the application state to not running
     def stop(self):
         self.running = False
     
-    # Reads the weight reading from the test stand and converts it to newtons
+    # Reads the weight reading from the test stand and converts it to newtons. This function is self-updating so the force readout on the display updates in real-time every 100ms
     def update_force(self):
         if self.running:
             self.weight = hx.get_weight_mean(1) # Gets the reading from the force sensor
             self.force = (self.weight/1000)*9.81
             self.thrust_label.config(text=f'{self.force:.2f} N') 
             self.thrust_label.after(100, self.update_force)  # Update every 100 ms
-            
+
+    # This function takes the inputted calibration coefficient from the GUI and applies it to the force output to get accurate data.
     def set_calibration(self):
         try:
             self.CalibrationCoef = float(self.calib_entry.get())
-            hx.set_scale_ratio(self.CalibrationCoef)
+            hx.set_scale_ratio(self.CalibrationCoef) # Applies the calibration coefficient to the HX711
+            
             messagebox.showinfo("Calibration Set", f"Calibration coefficient set to {self.CalibrationCoef}")
         except ValueError:
             messagebox.showerror('Invalid Input', 'Please enter a valid number for calibration.')   
