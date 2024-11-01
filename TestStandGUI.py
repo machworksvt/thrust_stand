@@ -17,23 +17,19 @@ class Application(tk.Frame):
     def __init__(self, window=None):
         super().__init__(window)
         hx.zero() # Zeros the thrust sensor
-        self.window = window
+        self.window = window # Generated the main GUI window
         self.running = False
         self.pack()
         self.create_widgets() # Generates the GUI based on the assets defined in create_widgets
         self.window.title("Thrust Sensor")
         self.root = root
-        self.message_index = 0 
+        self.message_index = 0 # Index is used in the calibration function to determine which message should be showing when
         self.CalibrationCoef = None
+        # Calibration instructions are stored in this string 
         self.calibration_messages = ['Press ENTER to start calibration', 
                                       'Place test stand on its side with arrow pointing down, then press ENTER',
                                       'Place known weight on stand, then press Enter']
-                                    
-        hx.set_scale_ratio(self.calib_entry) # Sets the scale ratio of the hx711 according to the calibration coef
-                             
-                                      
-                                      
-
+            
     # Defines widgets for the GUI
     def create_widgets(self):
 
@@ -91,55 +87,49 @@ class Application(tk.Frame):
     # This function takes the inputted calibration coefficient from the GUI and applies it to the force output to get accurate data.
     def set_calibration(self):
         try:
-            self.CalibrationCoef = float(self.calib_entry.get())
+            self.CalibrationCoef = float(self.calib_entry.get()) # Accepts the inputed calibration coefficient
             hx.set_scale_ratio(self.CalibrationCoef) # Applies the calibration coefficient to the HX711
             
             messagebox.showinfo("Calibration Set", f"Calibration coefficient set to {self.CalibrationCoef}")
         except ValueError:
-            messagebox.showerror('Invalid Input', 'Please enter a valid number for calibration.')   
-            
-    # Starts the calibration procedure for the thrust sensor
+            messagebox.showerror('Invalid Input', 'Please enter a valid number for calibration.') 
+
+    
+# The next three functions all have to do with the calibration process of the force sensor
+    
+    # This function starts the calibration procedure for the thrust sensor
     def calibrate(self):
-        self.text_window = tk.Toplevel(self.root)
+        self.text_window = tk.Toplevel(self.root) # Opens the text window to diplay calibration instructions
         self.text_window.title('Calibration')
         self.message_label = tk.Label(self.text_window, text=self.calibration_messages[self.message_index], font=('Ariel', 20))
         self.message_label.pack(pady=10)
-        self.text_window.bind('<Return>', self.update_message)
+        self.text_window.bind('<Return>', self.update_message) # Updates message when the ENTER key is pressed
        
-        
+   # This function updates the message displayed in the calibration window based on the message_index    
     def update_message(self, event):
         if self.message_index <= 1:
             self.message_index += 1
             self.message_label.config(text=self.calibration_messages[self.message_index])
         elif self.message_index == 2:
-            self.voltage = hx.get_data_mean(readings=1)
+            self.voltage = hx.get_data_mean(readings=1) # Takes the voltage reading with the known weight on the thrust senor 
             self.message_index += 1
-            self.text_window.destroy()
-            self.input_known_weight()
+            self.text_window.destroy() # Removes the current calibration text box
+            self.input_known_weight() # Generates the numerical input text box
         elif self.message_index == 3:
             self.message_label.config(text=self.calibration_messages[self.message_index])
-
-
-        
-
             
+    # This function allows for an input of a know weight to set the calibration coefficient   
     def input_known_weight(self):
         self.calibration_weight = tk.simpledialog.askfloat('Enter Value', 'Enter known weight in grams & press ENTER: ')
         if self.calibration_weight and self.voltage:
-            self.CalibrationCoef = self.voltage/self.calibration_weight
-            self.calib_entry.delete(0, tk.END)
-            self.calib_entry.insert(0, f'{self.CalibrationCoef:.4f}')
-            hx.set_scale_ratio(self.CalibrationCoef)
+            self.CalibrationCoef = self.voltage/self.calibration_weight # Calculates the calibration coefficient
+            self.calib_entry.delete(0, tk.END)  # Deletes the current calibration coefficient
+            self.calib_entry.insert(0, f'{self.CalibrationCoef:.4f}') # Inserts the new calibration coefficient
+            hx.set_scale_ratio(self.CalibrationCoef) # Sets calibration coefficient as the sale ratio for the force sensor
             messagebox.showinfo('calibration Updated', f"New calibration coefficient set to {self.CalibrationCoef}"  f"Place test stannd upright")
             self.message_index = 0
         
-            
-        
-        
-            
-
-        
-            
+                    
 root = tk.Tk()
 app = Application(window=root)
 app.mainloop()
