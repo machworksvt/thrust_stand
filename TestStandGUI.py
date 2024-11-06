@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import simpledialog, messagebox
 import RPi.GPIO as GPIO
 from hx711 import HX711
+import csv
 
 
 GPIO.setmode(GPIO.BCM) 
@@ -19,16 +20,18 @@ class Application(tk.Frame):
         hx.zero() # Zeros the thrust sensor
         self.window = window # Generated the main GUI window
         self.running = False
+        self.logging = False
         self.pack()
         self.create_widgets() # Generates the GUI based on the assets defined in create_widgets
         self.window.title("Thrust Sensor")
         self.root = root
-        self.message_index = 0 # Index is used in the calibration function to determine which message should be showing when
+        self.calibration_message_index = 0 # Index is used in the calibration function to determine which message should be showing when
         self.CalibrationCoef = None
         # Calibration instructions are stored in this string 
         self.calibration_messages = ['Press ENTER to start calibration', 
                                       'Place test stand on its side with arrow pointing down, then press ENTER',
                                       'Place known weight on stand, then press Enter']
+        self.log_messages=['Log','Stop Logging']
             
     # Defines widgets for the GUI
     def create_widgets(self):
@@ -36,6 +39,7 @@ class Application(tk.Frame):
         # Generated the force read-out
         self.thrust_label = tk.Label(self, text='0.0 N', font=('Ariel', 80))
         self.thrust_label.pack()
+        
         # Start button, when pressed runs the start() funtion
         self.start_button = tk.Button(self, text='Start', height=5, width=7, font=('Ariel', 20), command=self.start)
         self.start_button.pack(side=tk.LEFT)
@@ -43,7 +47,11 @@ class Application(tk.Frame):
         # Stop button, when pressed runs the stop() function
         self.stop_button = tk.Button(self, text='Stop', height=5, width=7, font=('Ariel', 20), command=self.stop)
         self.stop_button.pack(side=tk.RIGHT)
-        
+
+        #Log Button
+        self.log_button = tk.button(self, text='Log', height=5, width=7, font=('Ariel', 20), command=self.log)
+        self.log_button.pack(side=tk.BOTTOM)
+
         # Reset button, when pressed runs the reset() function
         self.reset_button = tk.Button(self, text='Reset', height=5, width=7, font=('Ariel', 20), command=self.reset)
         self.reset_button.pack(side=tk.BOTTOM)
@@ -94,6 +102,31 @@ class Application(tk.Frame):
         except ValueError:
             messagebox.showerror('Invalid Input', 'Please enter a valid number for calibration.') 
 
+    #This function writes data to a csv file
+    def write_data(self,filename,interval):
+        if self.logging:
+            with open(filename,'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Time (s)','Thrust (N)'])#header row
+            while True:
+                 timestamp = time.time()
+                 writer.writerow([timestamp,(hx.get_weight_mean(1)/1000)*9.81])#writes every new value of time and thrust in column 1 and 2
+                 time.sleep(interval) #pauses the loop for interval seconds
+    
+    #This function uses the log button to toggle the state of self.logging
+    def log(self):
+        if not self.logging:
+            self.logging = True
+        else:
+            self.logging = False
+        
+
+
+
+
+
+            
+
     
 # The next three functions all have to do with the calibration process of the force sensor
     
@@ -101,22 +134,22 @@ class Application(tk.Frame):
     def calibrate(self):
         self.text_window = tk.Toplevel(self.root) # Opens the text window to diplay calibration instructions
         self.text_window.title('Calibration')
-        self.message_label = tk.Label(self.text_window, text=self.calibration_messages[self.message_index], font=('Ariel', 20))
-        self.message_label.pack(pady=10)
-        self.text_window.bind('<Return>', self.update_message) # Updates message when the ENTER key is pressed
+        self.calibration_message_label = tk.Label(self.text_window, text=self.calibration_messages[self.calibration_message_index], font=('Ariel', 20))
+        self.calibration_message_label.pack(pady=10)
+        self.text_window.bind('<Return>', self.update_calibration_message) # Updates message when the ENTER key is pressed
        
    # This function updates the message displayed in the calibration window based on the message_index    
-    def update_message(self, event):
-        if self.message_index <= 1:
-            self.message_index += 1
-            self.message_label.config(text=self.calibration_messages[self.message_index])
-        elif self.message_index == 2:
+    def update_calibration_message(self, event):
+        if self.calibration_message_index <= 1:
+            self.calibration_message_index += 1
+            self.calibration_message_label.config(text=self.calibration_messages[self.calibration_message_index])
+        elif self.calibration_message_index == 2:
             self.voltage = hx.get_data_mean(readings=1) # Takes the voltage reading with the known weight on the thrust senor 
             self.message_index += 1
             self.text_window.destroy() # Removes the current calibration text box
-            self.input_known_weight() # Generates the numerical input text box
-        elif self.message_index == 3:
-            self.message_label.config(text=self.calibration_messages[self.message_index])
+            self.calibration_input_known_weight() # Generates the numerical input text box
+        elif self.calibration_message_index == 3:
+            self.calibration_message_label.config(text=self.calibration_messages[self.calibration_message_index])
             
     # This function allows for an input of a know weight to set the calibration coefficient   
     def input_known_weight(self):
