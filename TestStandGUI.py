@@ -31,8 +31,9 @@ class Application(tk.Frame):
         self.calibration_messages = ['Press ENTER to start calibration', 
                                       'Place test stand on its side with arrow pointing down, then press ENTER',
                                       'Place known weight on stand, then press Enter']
-        self.log_messages=['Log','Stop Logging']
-            
+                                      
+        self.filename = 'FileTEST.csv'    # Temporary hardcoded file name
+        self.time = 0
     # Defines widgets for the GUI
     def create_widgets(self):
 
@@ -49,7 +50,7 @@ class Application(tk.Frame):
         self.stop_button.pack(side=tk.RIGHT)
 
         #Log Button
-        self.log_button = tk.button(self, text='Log', height=5, width=7, font=('Ariel', 20), command=self.log)
+        self.log_button = tk.Button(self, text='Log', height=5, width=7, font=('Ariel', 20), command=self.log)
         self.log_button.pack(side=tk.BOTTOM)
 
         # Reset button, when pressed runs the reset() function
@@ -90,7 +91,49 @@ class Application(tk.Frame):
             self.weight = hx.get_weight_mean(1) # Gets the reading from the force sensor
             self.force = (self.weight/1000)*9.81
             self.thrust_label.config(text=f'{self.force:.2f} N') 
-            self.thrust_label.after(100, self.update_force)  # Update every 100 ms
+            
+            if self.logging:
+                self.thrust_label.after(100, self.write_data)  # Writes data to csv and updates every 100 ms
+                self.time += 0.1
+                
+            else:
+                self.thrust_label.after(100, self.update_force) # Just updates force readout every 100 ms
+            
+                
+    
+
+    #This function writes data to a csv file
+    def create_file(self):
+        if self.logging:
+            
+            with open(self.filename, mode='a', newline='') as file:  # Opens/Creates CSV file
+                writer = csv.writer(file)
+                writer.writerow(['Time (s)','Thrust (N)'])# Header row
+                self.write_data
+                
+                
+    def write_data(self):
+        
+        with open(self.filename, mode='a', newline='') as file:  # Opens/Creates CSV file
+            writer = csv.writer(file)
+            writer.writerow([round(self.time,1),(self.force)])#writes every new value of time and thrust in column 1 and 2
+         
+        self.thrust_label.after(1, self.update_force)
+                
+    
+    #This function uses the log button to toggle the state of self.logging
+    def log(self):
+        if not self.logging & self.running:
+            self.logging = True
+            self.log_button.config(text='Stop\nLogging')
+            self.create_file()
+            
+        else:
+            self.logging = False
+            self.log_button.config(text='Log')
+
+    
+# The next four functions all have to do with the calibration process of the force sensor
 
     # This function takes the inputted calibration coefficient from the GUI and applies it to the force output to get accurate data.
     def set_calibration(self):
@@ -101,34 +144,6 @@ class Application(tk.Frame):
             messagebox.showinfo("Calibration Set", f"Calibration coefficient set to {self.CalibrationCoef}")
         except ValueError:
             messagebox.showerror('Invalid Input', 'Please enter a valid number for calibration.') 
-
-    #This function writes data to a csv file
-    def write_data(self,filename,interval):
-        if self.logging:
-            with open(filename,'w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(['Time (s)','Thrust (N)'])#header row
-            while True:
-                 timestamp = time.time()
-                 writer.writerow([timestamp,(hx.get_weight_mean(1)/1000)*9.81])#writes every new value of time and thrust in column 1 and 2
-                 time.sleep(interval) #pauses the loop for interval seconds
-    
-    #This function uses the log button to toggle the state of self.logging
-    def log(self):
-        if not self.logging:
-            self.logging = True
-        else:
-            self.logging = False
-        
-
-
-
-
-
-            
-
-    
-# The next three functions all have to do with the calibration process of the force sensor
     
     # This function starts the calibration procedure for the thrust sensor
     def calibrate(self):
