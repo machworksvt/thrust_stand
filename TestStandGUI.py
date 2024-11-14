@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 from hx711 import HX711
 import csv
 from datetime import datetime
-
+from tkinter import filedialog
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM) 
 hx = HX711(dout_pin=6, pd_sck_pin=5) # Defines hx to use hx711 python package
@@ -222,11 +222,8 @@ class Application(tk.Frame):
         self.file_save_method_label.grid(row=0, column=0, columnspan=2, sticky="nsew")
         
         self.automatic_button=self.create_button(self.auto_save, self.log_window, "Auto", 1, 0)
-        self.manual_button=self.create_button(self.nothing, self.log_window, "Manual", 1, 1)
+        self.manual_button=self.create_button(self.manual_save, self.log_window, "Manual", 1, 1)
 
-    def nothing(self):
-        
-         return
          
     def auto_save(self):
         now = datetime.now()
@@ -235,6 +232,11 @@ class Application(tk.Frame):
         self.formatted_time = now.strftime("%H:%M:%S")
         
         self.filename = f"Test Run {self.formatted_date} {self.formatted_time}"
+        self.create_file
+        self.log_window.destroy()
+        
+    def manual_save(self):
+        self.filename = filedialog.asksaveasfilename(title = "Save Your File", defaultextension = "")
         self.create_file
         self.log_window.destroy()
         
