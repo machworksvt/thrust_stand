@@ -7,6 +7,7 @@ from hx711 import HX711
 import csv
 from datetime import datetime
 from tkinter import filedialog
+from tkinter import messagebox
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM) 
 hx = HX711(dout_pin=6, pd_sck_pin=5) # Defines hx to use hx711 python package
@@ -34,6 +35,8 @@ class Application(tk.Frame):
                                       'Place test stand on its side with arrow pointing down, then press ENTER',
                                       'Place known weight on stand, then press Enter']
                                       
+        self.auto_save_path = "/home/TestStand/TestStand2"
+                                      
         self.time = 0
         self.big_font = ("font", 24, "bold")
         self.little_font = ("font", 16)
@@ -50,9 +53,10 @@ class Application(tk.Frame):
         self.root.minsize(600, 400)
 
         # set weight of columns
-        self.root.columnconfigure(0, weight=1)
-        self.root.columnconfigure(1, weight=1)
+        self.root.columnconfigure(0, weight=2)
+        self.root.columnconfigure(1, weight=2)
         self.root.columnconfigure(2, weight=1)
+        self.root.columnconfigure(3, weight=1)
         
         # set weight of rows
         self.root.rowconfigure(0, weight=1)
@@ -73,19 +77,19 @@ class Application(tk.Frame):
         # Create buttons
         self.start_button = self.create_button(self.start, root,"Start", 1, 0)
         self.stop_button = self.create_button(self.stop, root, "Stop", 1, 1)
-        self.reset_button = self.create_button(self.reset, root, "Reset", 1, 2)
+        self.reset_button = self.create_button(self.reset, root, "Reset", 1, 2, 2)
         self.log_button = self.create_button(self.log, root, "Log", 2, 0, 2)  # Log button spans two columns (0 and 1)
-        self.calibrate_button = self.create_button(self.calibrate, root, "Calibrate", 2, 2)
-
+        self.calibrate_button = self.create_button(self.calibrate, root, "Calibrate", 2, 2, 2)
+        self.settings_button = self.create_button(self.settings_window, root, "Settings", 3, 3)
         # Create calibration Coefficient entry box and frame behind it
-        self.calib_entry_bg = tk.Frame(root, bg="#555555")
-        self.calib_entry_bg.grid(row=3, column=0, columnspan=3, sticky="nsew")
+        self.calib_entry_bg = tk.Frame(root, bg="#555555", highlightthickness = 1)
+        self.calib_entry_bg.grid(row=3, column=0, columnspan=2, sticky="nsew")
         self.calib_entry_label = tk.Entry(root, font=self.little_font, fg="grey", bg="#555555", bd=0, highlightthickness=0, insertbackground="white")
         self.calib_entry_label.insert(0, "Calibration Coefficient")
         self.calib_entry_label.bind("<FocusIn>", self.clear_placeholder)
         self.calib_entry_label.bind("<FocusOut>", self.add_placeholder)
         
-        self.calib_entry_label.grid(row=3, column=0, columnspan=3, sticky="nsew",padx=15)
+        self.calib_entry_label.grid(row=3, column=0, columnspan=2, sticky="nsew",padx=15, pady=2)
 
         self.set_calib_button = self.create_button(self.set_calibration, root, "Set", 3, 2)
 
@@ -231,8 +235,9 @@ class Application(tk.Frame):
         self.formatted_date = now.strftime("%m-%d-%Y")
         self.formatted_time = now.strftime("%H:%M:%S")
         
-        self.filename = f"Test Run {self.formatted_date} {self.formatted_time}"
+        self.filename = f"{self.auto_save_path}/Test Run {self.formatted_date} {self.formatted_time}"
         self.create_file
+        tk.messagebox.askokcancel(title="File Auto Save", message=f"File saved as: {self.filename}")
         self.log_window.destroy()
         
     def manual_save(self):
@@ -240,8 +245,30 @@ class Application(tk.Frame):
         self.create_file
         self.log_window.destroy()
         
+    def settings_window(self):
+        self.settings_window = Toplevel(root)
+        self.settings_window.title("Settings")
+        self.settings_window.geometry("500x200")
         
+        self.settings_window.columnconfigure(0, weight=1)
+        self.settings_window.columnconfigure(1, weight=1)
+        self.settings_window.columnconfigure(2, weight=1)
+        
+        self.settings_window.rowconfigure(0, weight=1)
+        self.settings_window.rowconfigure(1, weight=1)
+        self.settings_window.rowconfigure(2, weight=1)
+        
+        
+        
+        self.file_path_entry_label = tk.Entry(self.settings_window, font=self.little_font, fg="white", bg="#555555", bd=0, highlightthickness=0, insertbackground="white")
+        self.file_path_entry_label.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.file_path_browse_button=self.create_button(self.file_browse, self.settings_window, "Browse", 0, 2)
+        
+    def  file_browse(self):
+        self.auto_save_path = tk.filedialog.askdirectory(title = "Choose File Path")
 
+    def nothing(self):
+        return
     
 # The next four functions all have to do with the calibration process of the force sensor
 
