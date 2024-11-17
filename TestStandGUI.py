@@ -1,13 +1,11 @@
 import time
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import simpledialog, messagebox, filedialog, messagebox
 from tkinter import *
 import RPi.GPIO as GPIO
 from hx711 import HX711
 import csv
 from datetime import datetime
-from tkinter import filedialog
-from tkinter import messagebox
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM) 
 hx = HX711(dout_pin=6, pd_sck_pin=5) # Defines hx to use hx711 python package
